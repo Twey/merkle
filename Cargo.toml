@@ -1,0 +1,10 @@
+[package]
+name = "merkle"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+custom_debug_derive = "0.6.2"
+proptest = "1.11.0"
+sha2 = "0.11.0"
+thiserror = "2.0.18"
