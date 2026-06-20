@@ -63,6 +63,7 @@ pub struct Preproof<Digest, Hash = digest::Output<Digest>> {
     siblings: Vec<Hash>,
     node: Node,
     content: Hash,
+    #[serde(skip)]
     _digest: std::marker::PhantomData<Digest>,
 }
 

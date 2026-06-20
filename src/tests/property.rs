@@ -9,6 +9,22 @@ fn arb_leaves(min: usize, max: usize) -> impl Strategy<Value = Vec<Vec<u8>>> {
     proptest::collection::vec(proptest::collection::vec(any::<u8>(), 0..64), min..=max)
 }
 
+/// Generates a `Vec` of distinct leaves by using the index as a prefix.
+fn arb_distinct_leaves(min: usize, max: usize) -> impl Strategy<Value = Vec<Vec<u8>>> {
+    proptest::collection::vec(proptest::collection::vec(any::<u8>(), 0..60), min..=max).prop_map(
+        |leaves| {
+            leaves
+                .into_iter()
+                .enumerate()
+                .map(|(i, mut leaf)| {
+                    leaf.extend_from_slice(&(i as u32).to_le_bytes());
+                    leaf
+                })
+                .collect()
+        },
+    )
+}
+
 fn arb_tree_and_index(
     min_leaves: usize,
     max_leaves: usize,
@@ -44,12 +60,10 @@ proptest! {
 
     #[test]
     fn proof_fails_for_wrong_index(
-        leaves in arb_leaves(4, 256),
+        leaves in arb_distinct_leaves(4, 256),
         index_a in any::<proptest::sample::Index>(),
         index_b in any::<proptest::sample::Index>(),
     ) {
-        // Ensure all leaves are distinct so any index swap changes the content.
-        prop_assume!(leaves.iter().collect::<std::collections::HashSet<_>>().len() == leaves.len());
         let tree: Tree = leaves.iter().collect();
         let n = tree.len();
         let a = index_a.index(n);
