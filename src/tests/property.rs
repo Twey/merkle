@@ -1,6 +1,10 @@
 use crate::*;
 use proptest::prelude::*;
 
+type Tree = crate::Tree<sha2::Sha256>;
+type Preproof = crate::Preproof<sha2::Sha256>;
+type Hash = digest::Output<sha2::Sha256>;
+
 fn arb_leaves(min: usize, max: usize) -> impl Strategy<Value = Vec<Vec<u8>>> {
     proptest::collection::vec(proptest::collection::vec(any::<u8>(), 0..64), min..=max)
 }
@@ -64,7 +68,7 @@ proptest! {
         bogus_root in any::<[u8; 32]>(),
     ) {
         let proof = tree.prove(index).unwrap();
-        let bogus_root = Hash(bogus_root);
+        let bogus_root: Hash = bogus_root.into();
         prop_assume!(bogus_root != proof.preproof.root);
         let tampered = Preproof {
             root: bogus_root,
@@ -81,7 +85,7 @@ proptest! {
         let proof = tree.prove(index).unwrap();
         prop_assume!(!proof.preproof.siblings.is_empty());
         let mut bad_siblings = proof.preproof.siblings.clone();
-        bad_siblings[0] = Hash(bogus_sibling);
+        bad_siblings[0] = bogus_sibling.into();
         prop_assume!(bad_siblings != proof.preproof.siblings);
         let tampered = Preproof {
             siblings: bad_siblings,

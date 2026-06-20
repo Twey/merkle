@@ -76,10 +76,10 @@ impl<Digest: digest::Digest> Tree<Digest> {
 
         Ok(Proof {
             preproof: Preproof {
-                root: *self.tree.root().ok_or(Error::IndexOutOfBounds)?,
+                root: self.tree.root().ok_or(Error::IndexOutOfBounds)?.clone(),
                 node,
-                content: *self.0.nodes.get(node).ok_or(Error::IndexOutOfBounds)?,
-                siblings: tree::path_to_root(node).map(|node| self.0.nodes[tree::sibling(node)]).collect(),
+                content: self.tree.nodes.get(node).ok_or(Error::IndexOutOfBounds)?.clone(),
+                siblings: tree::path_to_root(node).map(|node| self.tree.nodes[tree::sibling(node)].clone()).collect(),
                 _digest: std::marker::PhantomData,
             },
         })

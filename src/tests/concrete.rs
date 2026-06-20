@@ -1,4 +1,5 @@
-use crate::*;
+type Tree = crate::Tree<sha2::Sha256>;
+type Preproof = crate::Preproof<sha2::Sha256>;
 
 #[test]
 fn empty_tree_has_no_root() {
@@ -68,7 +69,7 @@ fn proof_fails_for_wrong_root() {
     let tree = Tree::from_iter(["a", "b", "c", "d"]);
     let proof = tree.prove(0).unwrap();
     let tampered = Preproof {
-        root: Hash([0xffu8; 32]),
+        root: [0xffu8; 32].into(),
         ..proof.preproof
     };
     assert!(tampered.verify().is_err());
@@ -80,7 +81,7 @@ fn proof_fails_when_proof_is_tampered() {
     let proof = tree.prove(0).unwrap();
     let mut bad_siblings = proof.preproof.siblings.clone();
     if let Some(first) = bad_siblings.first_mut() {
-        *first = Hash([0xffu8; 32]);
+        *first = [0xffu8; 32].into();
     }
     let tampered = Preproof {
         siblings: bad_siblings,
