@@ -13,6 +13,11 @@ All public API is documented; `cargo doc` to build it.
 
 `cargo test` will run unit, integration, and property tests.
 
+## Benchmark
+
+`cargo bench` will run [Criterion](https://criterion-rs.github.io/book/)
+benchmarks for the public API on a range of input sizes.
+
 ## Example usage
 
 ```rust
@@ -41,7 +46,9 @@ trait that collects cryptographically secure digest algorithms.
 ### Layout
 
 The tree is stored internally in a flat tree using the Eytzinger breadth-first
-implicit tree layout, which is memory-compact and cache-friendly.
+implicit tree layout, which is memory-compact and cache-friendly, and allows us
+to access contiguous slices of leaves and sibling nodes, which is particularly
+helpful when recalculating the tree.
 
 ### Code structure
 
@@ -64,9 +71,10 @@ result in `Error::IndexOutOfBounds`.
 
 ## AI tool usage
 
-All library code was written by hand. Test code was largely generated from
-natural language and kept up-to-date using Claude Code, and documentation
-(excluding this `README`, which is artisanal) was partly hand-written and partly
-generated (I wrote terse documentation of surprising or non-local facts and used
-Claude to expand it, then passed over it myself to check for correctness and
-improve phrasing and formatting).
+All library code was written by hand. Test and benchmark code was largely
+generated from natural language and kept up-to-date using Claude Code (via
+[Zed](https://zed.dev)), and documentation (excluding this `README`, which is
+artisanal) was partly hand-written and partly generated (I wrote terse
+documentation of surprising or non-local facts and used Claude to expand it,
+then passed over it myself to check for correctness and improve phrasing and
+formatting).
