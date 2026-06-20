@@ -16,10 +16,7 @@ fn single_leaf_root_is_leaf_hash() {
 #[test]
 fn two_leaf_tree_root_is_parent_hash() {
     let tree: Tree = ["a", "b"].into_iter().collect();
-    let expected = Tree::hash_branch(
-        Tree::hash_leaf(b"a"),
-        Tree::hash_leaf(b"b"),
-    );
+    let expected = Tree::hash_branch(Tree::hash_leaf(b"a"), Tree::hash_leaf(b"b"));
     assert_eq!(tree.root(), Some(&expected));
 }
 
@@ -123,14 +120,8 @@ fn small_verify() {
 #[test]
 fn four_leaf_tree_root_is_correct() {
     let tree: Tree = ["a", "b", "c", "d"].into_iter().collect();
-    let left = Tree::hash_branch(
-        Tree::hash_leaf(b"a"),
-        Tree::hash_leaf(b"b"),
-    );
-    let right = Tree::hash_branch(
-        Tree::hash_leaf(b"c"),
-        Tree::hash_leaf(b"d"),
-    );
+    let left = Tree::hash_branch(Tree::hash_leaf(b"a"), Tree::hash_leaf(b"b"));
+    let right = Tree::hash_branch(Tree::hash_leaf(b"c"), Tree::hash_leaf(b"d"));
     let expected = Tree::hash_branch(left, right);
     assert_eq!(tree.root(), Some(&expected));
     assert_eq!(tree.len(), 4);
@@ -160,9 +151,6 @@ fn order_matters() {
 #[test]
 fn hash_leaf_domain_separation() {
     let leaf = Tree::hash_leaf(b"ab");
-    let branch = Tree::hash_branch(
-        Tree::hash_leaf(b"a"),
-        Tree::hash_leaf(b"b"),
-    );
+    let branch = Tree::hash_branch(Tree::hash_leaf(b"a"), Tree::hash_leaf(b"b"));
     assert_ne!(leaf, branch);
 }

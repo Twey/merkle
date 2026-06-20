@@ -15,7 +15,9 @@ impl<T: Default> FromIterator<T> for Tree<T> {
 
         let iter = items.into_iter();
 
-        let (num_leaves, items) = if let (lower, Some(upper)) = iter.size_hint() && lower == upper {
+        let (num_leaves, items) = if let (lower, Some(upper)) = iter.size_hint()
+            && lower == upper
+        {
             // If we know how many items there are, use the iterator directly
             (lower, Either::Left(iter))
         } else {
@@ -61,7 +63,9 @@ impl<T> Tree<T> {
     }
 
     fn parts(&self) -> Parts<'_, T> {
-        let (branches, leaves) = self.nodes.split_at((self.nodes.len().saturating_sub(1)) / 2);
+        let (branches, leaves) = self
+            .nodes
+            .split_at((self.nodes.len().saturating_sub(1)) / 2);
         Parts { branches, leaves }
     }
 
@@ -88,11 +92,7 @@ pub fn sibling(node: Node) -> Node {
 }
 
 pub fn parent(index: Node) -> Node {
-    if index == 0 {
-        0
-    } else {
-        (index - 1) / 2
-    }
+    if index == 0 { 0 } else { (index - 1) / 2 }
 }
 
 pub fn left_child(index: Node) -> Node {
@@ -105,26 +105,27 @@ pub fn right_child(index: Node) -> Node {
 
 // Bound a given range, returning a half-open range inside the given bounds.
 fn bound(range: &impl RangeBounds<usize>, min: usize, max: usize) -> Range<usize> {
-    use std::ops::Bound::{Included, Excluded, Unbounded};
+    use std::ops::Bound::{Excluded, Included, Unbounded};
 
     let start = match range.start_bound() {
         Included(n) => *n,
         Excluded(n) => n + 1,
         Unbounded => min,
-    }.clamp(min, max);
+    }
+    .clamp(min, max);
 
     let end = match range.end_bound() {
         Included(n) => n + 1,
         Excluded(n) => *n,
         Unbounded => max,
-    }.clamp(min, max + 1);
+    }
+    .clamp(min, max + 1);
 
     Range { start, end }
 }
 
 pub fn path_to_root(node: Node) -> impl Iterator<Item = Node> {
-    std::iter::successors(Some(node), |node| Some(parent(*node)))
-        .take_while(|node| *node != 0)
+    std::iter::successors(Some(node), |node| Some(parent(*node))).take_while(|node| *node != 0)
 }
 
 #[cfg(test)]

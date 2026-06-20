@@ -17,7 +17,6 @@
 
 use std::ops::RangeBounds;
 
-
 mod tree;
 use tree::Node;
 
@@ -69,7 +68,10 @@ pub struct Preproof<Digest, Hash = digest::Output<Digest>> {
 impl<Item: AsRef<[u8]>, Digest: digest::Digest> FromIterator<Item> for Tree<Digest> {
     fn from_iter<It: IntoIterator<Item = Item>>(items: It) -> Self {
         let mut me = Self {
-            tree: items.into_iter().map(|item| Self::hash_leaf(item.as_ref())).collect(),
+            tree: items
+                .into_iter()
+                .map(|item| Self::hash_leaf(item.as_ref()))
+                .collect(),
             _digest: std::marker::PhantomData,
         };
         let num_branches = me.tree.branches().len();
@@ -118,15 +120,22 @@ impl<Digest: digest::Digest> Tree<Digest> {
     pub fn prove(&self, index: Index) -> Result<Proof<Digest>> {
         let node = self.tree.branches().len() + index;
         if node >= self.tree.nodes.len() {
-            return Err(Error::IndexOutOfBounds)
+            return Err(Error::IndexOutOfBounds);
         }
 
         Ok(Proof {
             preproof: Preproof {
                 root: self.tree.root().ok_or(Error::IndexOutOfBounds)?.clone(),
                 node,
-                content: self.tree.nodes.get(node).ok_or(Error::IndexOutOfBounds)?.clone(),
-                siblings: tree::path_to_root(node).map(|node| self.tree.nodes[tree::sibling(node)].clone()).collect(),
+                content: self
+                    .tree
+                    .nodes
+                    .get(node)
+                    .ok_or(Error::IndexOutOfBounds)?
+                    .clone(),
+                siblings: tree::path_to_root(node)
+                    .map(|node| self.tree.nodes[tree::sibling(node)].clone())
+                    .collect(),
                 _digest: std::marker::PhantomData,
             },
         })
@@ -141,7 +150,10 @@ impl<Digest: digest::Digest> Tree<Digest> {
         hasher.finalize()
     }
 
-    fn hash_branch(left: digest::Output<Digest>, right: digest::Output<Digest>) -> digest::Output<Digest> {
+    fn hash_branch(
+        left: digest::Output<Digest>,
+        right: digest::Output<Digest>,
+    ) -> digest::Output<Digest> {
         let mut hasher = Digest::new();
         hasher.update([0x01]);
         hasher.update(left);
