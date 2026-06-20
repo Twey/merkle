@@ -1,7 +1,7 @@
 use std::ops::{Range, RangeBounds};
 
 /// The index of a node in the tree.
-pub type Node = usize;
+pub type Node = u32;
 
 /// An Eytzinger-layout implicit tree structure for complete binary trees.
 #[derive(Default, Debug, Clone)]
@@ -58,10 +58,15 @@ impl<T> Tree<T> {
 
     // Get all parents of all nodes in the given range
     pub fn parents(&self, nodes: &impl RangeBounds<Node>) -> Range<Node> {
-        // Bound to 1 because the root has no parent.
-        let nodes = bound(nodes, 1, self.nodes.len());
+        let nodes = bound(
+            nodes,
+            // Bound to 1 because the root has no parent.
+            1,
+            Node::try_from(self.nodes.len()).expect("number of nodes may not exceed u32::MAX"),
+        );
+
         // If the end of the range is a right node then include its parent in the range.
-        let end_is_right_node = usize::from(nodes.end.is_multiple_of(2) && nodes.end != 0);
+        let end_is_right_node = Node::from(nodes.end.is_multiple_of(2) && nodes.end != 0);
 
         Range {
             start: parent(nodes.start),
@@ -91,7 +96,7 @@ pub fn right_child(index: Node) -> Node {
 }
 
 // Bound a given range, returning a half-open range inside the given bounds.
-fn bound(range: &impl RangeBounds<usize>, min: usize, max: usize) -> Range<usize> {
+fn bound(range: &impl RangeBounds<Node>, min: Node, max: Node) -> Range<Node> {
     use std::ops::Bound::{Excluded, Included, Unbounded};
 
     let start = match range.start_bound() {

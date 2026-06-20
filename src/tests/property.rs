@@ -15,9 +15,9 @@ fn arb_distinct_leaves(min: usize, max: usize) -> impl Strategy<Value = Vec<Vec<
         |leaves| {
             leaves
                 .into_iter()
-                .enumerate()
-                .map(|(i, mut leaf)| {
-                    leaf.extend_from_slice(&(i as u32).to_le_bytes());
+                .zip(0u32..)
+                .map(|(mut leaf, i)| {
+                    leaf.extend_from_slice(&i.to_le_bytes());
                     leaf
                 })
                 .collect()

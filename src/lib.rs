@@ -18,7 +18,7 @@
 use std::ops::RangeBounds;
 
 mod tree;
-use tree::Node;
+pub use tree::Node;
 
 /// The index of an item in the list of leaves.
 pub type Index = usize;
@@ -59,12 +59,12 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 /// check the proof and obtain a [`Proof`].
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Preproof<Digest, Hash = digest::Output<Digest>> {
-    root: Hash,
-    siblings: Vec<Hash>,
-    node: Node,
-    content: Hash,
+    pub root: Hash,
+    pub siblings: Vec<Hash>,
+    pub node: Node,
+    pub content: Hash,
     #[serde(skip)]
-    _digest: std::marker::PhantomData<Digest>,
+    pub _digest: std::marker::PhantomData<Digest>,
 }
 
 /// Builds a [`Tree`] from an iterator of byte-like items.
@@ -80,7 +80,8 @@ impl<Item: AsRef<[u8]>, Digest: digest::Digest> FromIterator<Item> for Tree<Dige
                 .collect(),
             _digest: std::marker::PhantomData,
         };
-        let num_branches = me.tree.branches().len();
+        let num_branches = u32::try_from(me.tree.branches().len())
+            .expect("number of nodes may not exceed u32::MAX");
         me.recalculate(num_branches..);
         me
     }
@@ -123,9 +124,14 @@ impl<Digest: digest::Digest> Tree<Digest> {
     /// # Errors
     ///
     /// Returns [`Error::IndexOutOfBounds`] if `index >= self.len()`.
+    ///
+    /// # Panics
+    ///
+    /// If the number of nodes in the tree exceeds `u32::MAX`.
     pub fn prove(&self, index: Index) -> Result<Proof<Digest>> {
-        let node = self.tree.branches().len() + index;
-        if node >= self.tree.nodes.len() {
+        let node = Node::try_from(self.tree.branches().len() + index)
+            .expect("number of nodes may not exceed u32::MAX");
+        if node as usize >= self.tree.nodes.len() {
             return Err(Error::IndexOutOfBounds);
         }
 
@@ -136,11 +142,11 @@ impl<Digest: digest::Digest> Tree<Digest> {
                 content: self
                     .tree
                     .nodes
-                    .get(node)
+                    .get(node as usize)
                     .ok_or(Error::IndexOutOfBounds)?
                     .clone(),
                 siblings: tree::path_to_root(node)
-                    .map(|node| self.tree.nodes[tree::sibling(node)].clone())
+                    .map(|node| self.tree.nodes[tree::sibling(node) as usize].clone())
                     .collect(),
                 _digest: std::marker::PhantomData,
             },
@@ -168,9 +174,9 @@ impl<Digest: digest::Digest> Tree<Digest> {
     }
 
     fn update(&mut self, node: Node) {
-        self.tree.nodes[node] = Self::hash_branch(
-            self.tree.nodes[tree::left_child(node)].clone(),
-            self.tree.nodes[tree::right_child(node)].clone(),
+        self.tree.nodes[node as usize] = Self::hash_branch(
+            self.tree.nodes[tree::left_child(node) as usize].clone(),
+            self.tree.nodes[tree::right_child(node) as usize].clone(),
         );
     }
 
