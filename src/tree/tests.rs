@@ -1,5 +1,13 @@
-use super::super::*;
+use super::*;
 use proptest::prelude::*;
+
+#[test]
+fn empty_tree_has_no_root() {
+    let tree: Tree<()> = [].into_iter().collect();
+    assert_eq!(tree.root(), None);
+    assert!(tree.is_empty());
+    assert_eq!(tree.leaves().len(), 0);
+}
 
 fn arb_values(min: usize, max: usize) -> impl Strategy<Value = Vec<i32>> {
     proptest::collection::vec(any::<i32>(), min..=max)

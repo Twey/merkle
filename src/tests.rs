@@ -5,6 +5,49 @@ type Tree = crate::Tree<sha2::Sha256>;
 type Preproof = crate::Preproof<sha2::Sha256>;
 type Hash = digest::Output<sha2::Sha256>;
 
+#[test]
+fn empty_tree_has_no_root() {
+    let tree = Tree::default();
+    assert_eq!(tree.root(), None);
+}
+
+#[test]
+fn empty_tree_prove_is_out_of_bounds() {
+    let tree = Tree::default();
+    assert!(tree.prove(0).is_err());
+}
+
+#[test]
+fn four_leaf_tree_root_is_correct() {
+    let tree: Tree = ["a", "b", "c", "d"].into_iter().collect();
+    let left = Tree::hash_branch(Tree::hash_leaf(b"a"), Tree::hash_leaf(b"b"));
+    let right = Tree::hash_branch(Tree::hash_leaf(b"c"), Tree::hash_leaf(b"d"));
+    let expected = Tree::hash_branch(left, right);
+    assert_eq!(tree.root(), Some(&expected));
+    assert_eq!(tree.len(), 4);
+}
+
+#[test]
+fn sha512_256_proof_verifies() {
+    type Sha512Tree = crate::Tree<sha2::Sha512_256>;
+    let tree: Sha512Tree = ["a", "b", "c", "d"].into_iter().collect();
+    for i in 0..4 {
+        let proof = tree.prove(i).expect("prove should succeed");
+        proof.preproof.verify().expect("proof should verify");
+    }
+}
+
+#[test]
+fn sha512_256_produces_different_root_than_sha256() {
+    type Sha512Tree = crate::Tree<sha2::Sha512_256>;
+    let sha256_tree: Tree = ["a", "b", "c", "d"].into_iter().collect();
+    let sha512_tree: Sha512Tree = ["a", "b", "c", "d"].into_iter().collect();
+    assert_ne!(
+        sha256_tree.root().unwrap().as_slice(),
+        sha512_tree.root().unwrap().as_slice()
+    );
+}
+
 fn arb_leaves(min: usize, max: usize) -> impl Strategy<Value = Vec<Vec<u8>>> {
     proptest::collection::vec(proptest::collection::vec(any::<u8>(), 0..64), min..=max)
 }
