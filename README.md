@@ -74,7 +74,7 @@ result in `Error::IndexOutOfBounds`.
 All library code was written by hand. Test and benchmark code was largely
 generated from natural language and kept up-to-date using Claude Code (via
 [Zed](https://zed.dev)), and documentation (excluding this `README`, which is
-artisanal) was partly hand-written and partly generated (I wrote terse
-documentation of surprising or non-local facts and used Claude to expand it,
-then passed over it myself to check for correctness and improve phrasing and
-formatting).
+artisanal) was partly hand-written and partly generated: I wrote terse
+documentation of surprising or non-local facts and used Claude to expand it with
+more obvious information, then passed over it myself to check for correctness
+and improve phrasing and formatting.
