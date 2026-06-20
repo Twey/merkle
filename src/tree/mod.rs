@@ -3,12 +3,9 @@ use std::ops::{Range, RangeBounds};
 /// The index of a node in the tree.
 pub type Node = usize;
 
-// TODO store leaf values
-// TODO parameterize over hasher
+/// An Eytzinger-layout implicit tree structure for complete binary trees.
 #[derive(Default, Debug, Clone)]
 pub struct Tree<T> {
-    // Implicit data structure saves allocations.
-    // The (1-indexed) nth child of node k is at 2k+n
     pub(crate) nodes: Vec<T>,
 }
 
@@ -38,9 +35,9 @@ impl<T: Default> FromIterator<T> for Tree<T> {
     }
 }
 
-pub struct Parts<'a, T> {
-    pub branches: &'a [T],
-    pub leaves: &'a [T],
+struct Parts<'a, T> {
+    branches: &'a [T],
+    leaves: &'a [T],
 }
 
 // Public API
@@ -63,7 +60,7 @@ impl<T> Tree<T> {
         self.parts().leaves
     }
 
-    pub fn parts(&self) -> Parts<'_, T> {
+    fn parts(&self) -> Parts<'_, T> {
         let (branches, leaves) = self.nodes.split_at((self.nodes.len().saturating_sub(1)) / 2);
         Parts { branches, leaves }
     }
@@ -106,7 +103,7 @@ pub fn right_child(index: Node) -> Node {
     2 * index + 2
 }
 
-
+// Bound a given range, returning a half-open range inside the given bounds.
 fn bound(range: &impl RangeBounds<usize>, min: usize, max: usize) -> Range<usize> {
     use std::ops::Bound::{Included, Excluded, Unbounded};
 
@@ -120,7 +117,7 @@ fn bound(range: &impl RangeBounds<usize>, min: usize, max: usize) -> Range<usize
         Included(n) => n + 1,
         Excluded(n) => *n,
         Unbounded => max,
-    }.clamp(min, max);
+    }.clamp(min, max + 1);
 
     Range { start, end }
 }
