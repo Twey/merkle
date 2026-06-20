@@ -1,8 +1,8 @@
-use super::*;
+use crate::*;
 use proptest::prelude::*;
 
 fn arb_leaves(min: usize, max: usize) -> impl Strategy<Value = Vec<Vec<u8>>> {
-    prop::collection::vec(prop::collection::vec(any::<u8>(), 0..64), min..=max)
+    proptest::collection::vec(proptest::collection::vec(any::<u8>(), 0..64), min..=max)
 }
 
 fn arb_tree_and_index(min_leaves: usize, max_leaves: usize) -> impl Strategy<Value = (Tree, Index)> {
@@ -23,7 +23,7 @@ proptest! {
     #[test]
     fn proof_fails_for_wrong_leaf(
         (tree, index) in arb_tree_and_index(1, 256),
-        bogus in prop::collection::vec(any::<u8>(), 0..64),
+        bogus in proptest::collection::vec(any::<u8>(), 0..64),
     ) {
         let proof = tree.prove(index).unwrap();
         let bogus_hash = Tree::hash_leaf(&bogus);
@@ -38,8 +38,8 @@ proptest! {
     #[test]
     fn proof_fails_for_wrong_index(
         leaves in arb_leaves(4, 256),
-        index_a in any::<prop::sample::Index>(),
-        index_b in any::<prop::sample::Index>(),
+        index_a in any::<proptest::sample::Index>(),
+        index_b in any::<proptest::sample::Index>(),
     ) {
         // Ensure all leaves are distinct so any index swap changes the content.
         prop_assume!(leaves.iter().collect::<std::collections::HashSet<_>>().len() == leaves.len());
@@ -92,7 +92,7 @@ proptest! {
 
     #[test]
     fn duplicate_values_can_still_be_proven_by_index(
-        value in prop::collection::vec(any::<u8>(), 0..64),
+        value in proptest::collection::vec(any::<u8>(), 0..64),
         count in 2usize..=64,
     ) {
         let leaves: Vec<_> = std::iter::repeat_n(&value, count).collect();
@@ -109,5 +109,69 @@ proptest! {
         let tree = Tree::from_iter(leaves.iter());
         prop_assert!(tree.prove(len).is_err());
         prop_assert!(tree.prove(len + 1).is_err());
+    }
+
+    #[test]
+    fn single_leaf_root_is_leaf_hash(leaf in proptest::collection::vec(any::<u8>(), 0..64)) {
+        let tree = Tree::from_iter([&leaf]);
+        prop_assert_eq!(tree.root(), Some(&Tree::hash_leaf(&leaf)));
+        prop_assert_eq!(tree.len(), 1);
+        prop_assert!(!tree.is_empty());
+    }
+
+    #[test]
+    fn two_leaf_tree_root_is_parent_hash(
+        a in proptest::collection::vec(any::<u8>(), 0..64),
+        b in proptest::collection::vec(any::<u8>(), 0..64),
+    ) {
+        let tree = Tree::from_iter([&a, &b]);
+        let expected = Tree::hash_branch(
+            Tree::hash_leaf(&a),
+            Tree::hash_leaf(&b),
+        );
+        prop_assert_eq!(tree.root(), Some(&expected));
+        prop_assert_eq!(tree.len(), 2);
+    }
+
+    #[test]
+    fn deterministic_construction(leaves in arb_leaves(1, 128)) {
+        let tree1 = Tree::from_iter(leaves.iter());
+        let tree2 = Tree::from_iter(leaves.iter());
+        prop_assert_eq!(tree1.root(), tree2.root());
+    }
+
+    #[test]
+    fn different_inputs_produce_different_roots(
+        a in proptest::collection::vec(any::<u8>(), 1..64),
+        b in proptest::collection::vec(any::<u8>(), 1..64),
+    ) {
+        prop_assume!(a != b);
+        let tree1 = Tree::from_iter([&a, &b]);
+        let tree2 = Tree::from_iter([&b, &a]);
+        prop_assert_ne!(tree1.root(), tree2.root());
+    }
+
+    #[test]
+    fn len_matches_input_count(leaves in arb_leaves(1, 256)) {
+        let n = leaves.len();
+        let tree = Tree::from_iter(leaves.iter());
+        prop_assert_eq!(tree.len(), n);
+        prop_assert!(!tree.is_empty());
+        prop_assert!(tree.root().is_some());
+    }
+
+    #[test]
+    fn hash_leaf_domain_separation(
+        a in proptest::collection::vec(any::<u8>(), 0..32),
+        b in proptest::collection::vec(any::<u8>(), 0..32),
+    ) {
+        let mut concatenated = a.clone();
+        concatenated.extend(&b);
+        let leaf = Tree::hash_leaf(&concatenated);
+        let branch = Tree::hash_branch(
+            Tree::hash_leaf(&a),
+            Tree::hash_leaf(&b),
+        );
+        prop_assert_ne!(leaf, branch);
     }
 }

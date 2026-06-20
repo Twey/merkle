@@ -1,4 +1,4 @@
-use super::*;
+use crate::*;
 
 #[test]
 fn empty_tree_has_no_root() {
@@ -117,6 +117,52 @@ fn large_tree_builds_and_verifies() {
 fn small_verify() {
     let tree = Tree::from_iter((0..3).map(|i| format!("leaf {i}")));
     let proof = tree.prove(1).unwrap();
-    dbg!((&tree, &proof.preproof));
     proof.preproof.verify().unwrap();
+}
+
+#[test]
+fn four_leaf_tree_root_is_correct() {
+    let tree = Tree::from_iter(["a", "b", "c", "d"]);
+    let left = Tree::hash_branch(
+        Tree::hash_leaf(b"a"),
+        Tree::hash_leaf(b"b"),
+    );
+    let right = Tree::hash_branch(
+        Tree::hash_leaf(b"c"),
+        Tree::hash_leaf(b"d"),
+    );
+    let expected = Tree::hash_branch(left, right);
+    assert_eq!(tree.root(), Some(&expected));
+    assert_eq!(tree.len(), 4);
+}
+
+#[test]
+fn deterministic_construction() {
+    let tree1 = Tree::from_iter(["a", "b", "c"]);
+    let tree2 = Tree::from_iter(["a", "b", "c"]);
+    assert_eq!(tree1.root(), tree2.root());
+}
+
+#[test]
+fn different_inputs_produce_different_roots() {
+    let tree1 = Tree::from_iter(["a", "b"]);
+    let tree2 = Tree::from_iter(["a", "c"]);
+    assert_ne!(tree1.root(), tree2.root());
+}
+
+#[test]
+fn order_matters() {
+    let tree1 = Tree::from_iter(["a", "b"]);
+    let tree2 = Tree::from_iter(["b", "a"]);
+    assert_ne!(tree1.root(), tree2.root());
+}
+
+#[test]
+fn hash_leaf_domain_separation() {
+    let leaf = Tree::hash_leaf(b"ab");
+    let branch = Tree::hash_branch(
+        Tree::hash_leaf(b"a"),
+        Tree::hash_leaf(b"b"),
+    );
+    assert_ne!(leaf, branch);
 }

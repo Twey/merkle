@@ -116,7 +116,7 @@ fn bound(range: &impl RangeBounds<usize>, min: usize, max: usize) -> Range<usize
         Unbounded => min,
     }.clamp(min, max);
 
-    let end = match range.start_bound() {
+    let end = match range.end_bound() {
         Included(n) => n + 1,
         Excluded(n) => *n,
         Unbounded => max,

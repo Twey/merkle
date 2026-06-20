@@ -159,5 +159,3 @@ impl Preproof {
 
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod proptests;
