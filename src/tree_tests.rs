@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn empty_tree_has_no_root() {
-    let tree = Tree::default();
+    let tree = Tree::<Hash>::default();
     assert_eq!(tree.root(), None);
     assert!(tree.is_empty());
     assert_eq!(tree.len(), 0);
@@ -11,7 +11,7 @@ fn empty_tree_has_no_root() {
 #[test]
 fn single_leaf_root_is_leaf_hash() {
     let tree = Tree::from_iter(["a"]);
-    assert_eq!(tree.root(), Some(Tree::hash_leaf(b"a")));
+    assert_eq!(tree.root(), Some(&Tree::hash_leaf(b"a")));
     assert_eq!(tree.len(), 1);
     assert!(!tree.is_empty());
 }
@@ -23,7 +23,7 @@ fn two_leaf_tree_root_is_parent_hash() {
         Tree::hash_leaf(b"a"),
         Tree::hash_leaf(b"b"),
     );
-    assert_eq!(tree.root(), Some(expected));
+    assert_eq!(tree.root(), Some(&expected));
     assert_eq!(tree.len(), 2);
 }
 
@@ -46,7 +46,7 @@ fn four_leaf_tree_root_is_correct() {
         Tree::hash_leaf(b"d"),
     );
     let expected = Tree::hash_branch(left, right);
-    assert_eq!(tree.root(), Some(expected));
+    assert_eq!(tree.root(), Some(&expected));
     assert_eq!(tree.len(), 4);
 }
 

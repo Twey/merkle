@@ -2,14 +2,14 @@ use super::*;
 
 #[test]
 fn empty_tree_has_no_root() {
-    let tree = Tree::default();
+    let tree = Tree::<Hash>::default();
     assert_eq!(tree.root(), None);
 }
 
 #[test]
 fn single_leaf_root_is_leaf_hash() {
     let tree = Tree::from_iter(["a"]);
-    assert_eq!(tree.root(), Some(Tree::hash_leaf(b"a")));
+    assert_eq!(tree.root(), Some(&Tree::hash_leaf(b"a")));
 }
 
 #[test]
@@ -19,7 +19,7 @@ fn two_leaf_tree_root_is_parent_hash() {
         Tree::hash_leaf(b"a"),
         Tree::hash_leaf(b"b"),
     );
-    assert_eq!(tree.root(), Some(expected));
+    assert_eq!(tree.root(), Some(&expected));
 }
 
 #[test]

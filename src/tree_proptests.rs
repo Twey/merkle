@@ -9,7 +9,7 @@ proptest! {
     #[test]
     fn single_leaf_root_is_leaf_hash(leaf in prop::collection::vec(any::<u8>(), 0..64)) {
         let tree = Tree::from_iter([&leaf]);
-        prop_assert_eq!(tree.root(), Some(Tree::hash_leaf(&leaf)));
+        prop_assert_eq!(tree.root(), Some(&Tree::hash_leaf(&leaf)));
         prop_assert_eq!(tree.len(), 1);
         prop_assert!(!tree.is_empty());
     }
@@ -24,7 +24,7 @@ proptest! {
             Tree::hash_leaf(&a),
             Tree::hash_leaf(&b),
         );
-        prop_assert_eq!(tree.root(), Some(expected));
+        prop_assert_eq!(tree.root(), Some(&expected));
         prop_assert_eq!(tree.len(), 2);
     }
 
