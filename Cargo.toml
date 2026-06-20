@@ -8,7 +8,7 @@ pedantic = "warn"
 
 [dependencies]
 digest = "0.11.3"
-itertools = "0.15.0"
+serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.18"
 
 [dev-dependencies]

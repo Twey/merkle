@@ -11,21 +11,8 @@ pub struct Tree<T> {
 
 impl<T: Default> FromIterator<T> for Tree<T> {
     fn from_iter<It: IntoIterator<Item = T>>(items: It) -> Self {
-        use itertools::Either;
-
-        let iter = items.into_iter();
-
-        let (num_leaves, items) = if let (lower, Some(upper)) = iter.size_hint()
-            && lower == upper
-        {
-            // If we know how many items there are, use the iterator directly
-            (lower, Either::Left(iter))
-        } else {
-            // Otherwise, collect them into a `Vec` so we can count them
-            let vec = iter.collect::<Vec<_>>().into_iter();
-            (vec.len(), Either::Right(vec))
-        };
-
+        let items: Vec<_> = items.into_iter().collect();
+        let num_leaves = items.len();
         let num_nodes = (2 * num_leaves).saturating_sub(1);
         let num_branches = num_nodes - num_leaves;
 
@@ -124,6 +111,8 @@ fn bound(range: &impl RangeBounds<usize>, min: usize, max: usize) -> Range<usize
     Range { start, end }
 }
 
+// Yield the path from the given node to the root, including the starting node
+// but excluding the root node itself.
 pub fn path_to_root(node: Node) -> impl Iterator<Item = Node> {
     std::iter::successors(Some(node), |node| Some(parent(*node))).take_while(|node| *node != 0)
 }

@@ -28,6 +28,11 @@ pub type Index = usize;
 /// Construct a tree by collecting an iterator of byte-like items (anything
 /// that implements [`AsRef<[u8]>`]).  An empty iterator produces an empty
 /// tree whose [`root`](Tree::root) is `None`.
+///
+/// # Merkle representation
+///
+/// This implementation promotes odd leaves, meaning that the resulting tree is
+/// always complete and perfect (though not always full).
 #[derive(Clone, Debug, Default)]
 pub struct Tree<Digest, Hash = digest::Output<Digest>> {
     tree: tree::Tree<Hash>,
@@ -52,7 +57,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 ///
 /// Obtained from [`Tree::prove`].  Call [`verify`](Preproof::verify) to
 /// check the proof and obtain a [`Proof`].
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Preproof<Digest, Hash = digest::Output<Digest>> {
     root: Hash,
     siblings: Vec<Hash>,
