@@ -23,7 +23,7 @@ impl<T: Default> FromIterator<T> for Tree<T> {
             (lower, Either::Left(iter))
         } else {
             // Otherwise, collect them into a `Vec` so we can count them
-            let vec = Vec::from_iter(iter).into_iter();
+            let vec = iter.collect::<Vec<_>>().into_iter();
             (vec.len(), Either::Right(vec))
         };
 
@@ -73,7 +73,7 @@ impl<T> Tree<T> {
         // Bound to 1 because the root has no parent.
         let nodes = bound(nodes, 1, self.nodes.len());
         // If the end of the range is a right node then include its parent in the range.
-        let end_is_right_node = if nodes.end.is_multiple_of(2) && nodes.end != 0 { 1 } else { 0 };
+        let end_is_right_node = usize::from(nodes.end.is_multiple_of(2) && nodes.end != 0);
 
         Range {
             start: parent(nodes.start),
@@ -108,7 +108,7 @@ pub fn right_child(index: Node) -> Node {
 
 
 fn bound(range: &impl RangeBounds<usize>, min: usize, max: usize) -> Range<usize> {
-    use std::ops::Bound::*;
+    use std::ops::Bound::{Included, Excluded, Unbounded};
 
     let start = match range.start_bound() {
         Included(n) => *n,

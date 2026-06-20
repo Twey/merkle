@@ -9,13 +9,13 @@ fn empty_tree_has_no_root() {
 
 #[test]
 fn single_leaf_root_is_leaf_hash() {
-    let tree = Tree::from_iter(["a"]);
+    let tree: Tree = ["a"].into_iter().collect();
     assert_eq!(tree.root(), Some(&Tree::hash_leaf(b"a")));
 }
 
 #[test]
 fn two_leaf_tree_root_is_parent_hash() {
-    let tree = Tree::from_iter(["a", "b"]);
+    let tree: Tree = ["a", "b"].into_iter().collect();
     let expected = Tree::hash_branch(
         Tree::hash_leaf(b"a"),
         Tree::hash_leaf(b"b"),
@@ -25,8 +25,8 @@ fn two_leaf_tree_root_is_parent_hash() {
 
 #[test]
 fn odd_leaf_count_is_handled_deterministically() {
-    let tree1 = Tree::from_iter(["a", "b", "c"]);
-    let tree2 = Tree::from_iter(["a", "b", "c"]);
+    let tree1: Tree = ["a", "b", "c"].into_iter().collect();
+    let tree2: Tree = ["a", "b", "c"].into_iter().collect();
     assert_eq!(tree1.root(), tree2.root());
     // With 3 leaves the tree must still produce a definite root.
     assert!(tree1.root().is_some());
@@ -35,7 +35,7 @@ fn odd_leaf_count_is_handled_deterministically() {
 #[test]
 fn proof_verifies_for_each_leaf() {
     let values = ["a", "b", "c", "d"];
-    let tree = Tree::from_iter(values);
+    let tree: Tree = values.into_iter().collect();
     for i in 0..values.len() {
         let proof = tree.prove(i).expect("prove should succeed");
         proof.preproof.verify().expect("proof should verify");
@@ -44,7 +44,7 @@ fn proof_verifies_for_each_leaf() {
 
 #[test]
 fn proof_fails_for_wrong_leaf() {
-    let tree = Tree::from_iter(["a", "b", "c", "d"]);
+    let tree: Tree = ["a", "b", "c", "d"].into_iter().collect();
     let proof = tree.prove(0).unwrap();
     let tampered = Preproof {
         content: Tree::hash_leaf(b"z"),
@@ -55,7 +55,7 @@ fn proof_fails_for_wrong_leaf() {
 
 #[test]
 fn proof_fails_for_wrong_index() {
-    let tree = Tree::from_iter(["a", "b", "c", "d"]);
+    let tree: Tree = ["a", "b", "c", "d"].into_iter().collect();
     let proof = tree.prove(0).unwrap();
     let tampered = Preproof {
         node: 1,
@@ -66,7 +66,7 @@ fn proof_fails_for_wrong_index() {
 
 #[test]
 fn proof_fails_for_wrong_root() {
-    let tree = Tree::from_iter(["a", "b", "c", "d"]);
+    let tree: Tree = ["a", "b", "c", "d"].into_iter().collect();
     let proof = tree.prove(0).unwrap();
     let tampered = Preproof {
         root: [0xffu8; 32].into(),
@@ -77,7 +77,7 @@ fn proof_fails_for_wrong_root() {
 
 #[test]
 fn proof_fails_when_proof_is_tampered() {
-    let tree = Tree::from_iter(["a", "b", "c", "d"]);
+    let tree: Tree = ["a", "b", "c", "d"].into_iter().collect();
     let proof = tree.prove(0).unwrap();
     let mut bad_siblings = proof.preproof.siblings.clone();
     if let Some(first) = bad_siblings.first_mut() {
@@ -92,7 +92,7 @@ fn proof_fails_when_proof_is_tampered() {
 
 #[test]
 fn duplicate_values_can_still_be_proven_by_index() {
-    let tree = Tree::from_iter(["a", "a", "a", "a"]);
+    let tree: Tree = ["a", "a", "a", "a"].into_iter().collect();
     for i in 0..4 {
         let proof = tree.prove(i).expect("prove should succeed");
         proof.preproof.verify().expect("proof should verify");
@@ -101,7 +101,7 @@ fn duplicate_values_can_still_be_proven_by_index() {
 
 #[test]
 fn large_tree_builds_and_verifies() {
-    let tree = Tree::from_iter((0..1000).map(|i| format!("leaf_{i}")));
+    let tree: Tree = (0..1000).map(|i| format!("leaf_{i}")).collect();
 
     assert_eq!(tree.len(), 1000);
     assert!(tree.root().is_some());
@@ -109,21 +109,20 @@ fn large_tree_builds_and_verifies() {
     // Verify a sample of proofs across the tree.
     for &i in &[0, 1, 499, 500, 998, 999] {
         let proof = tree.prove(i).expect("prove should succeed");
-        // assert_eq!(proof.preproof.index, i);
         proof.preproof.verify().expect("proof should verify");
     }
 }
 
 #[test]
 fn small_verify() {
-    let tree = Tree::from_iter((0..3).map(|i| format!("leaf {i}")));
+    let tree: Tree = (0..3).map(|i| format!("leaf {i}")).collect();
     let proof = tree.prove(1).unwrap();
     proof.preproof.verify().unwrap();
 }
 
 #[test]
 fn four_leaf_tree_root_is_correct() {
-    let tree = Tree::from_iter(["a", "b", "c", "d"]);
+    let tree: Tree = ["a", "b", "c", "d"].into_iter().collect();
     let left = Tree::hash_branch(
         Tree::hash_leaf(b"a"),
         Tree::hash_leaf(b"b"),
@@ -139,22 +138,22 @@ fn four_leaf_tree_root_is_correct() {
 
 #[test]
 fn deterministic_construction() {
-    let tree1 = Tree::from_iter(["a", "b", "c"]);
-    let tree2 = Tree::from_iter(["a", "b", "c"]);
+    let tree1: Tree = ["a", "b", "c"].into_iter().collect();
+    let tree2: Tree = ["a", "b", "c"].into_iter().collect();
     assert_eq!(tree1.root(), tree2.root());
 }
 
 #[test]
 fn different_inputs_produce_different_roots() {
-    let tree1 = Tree::from_iter(["a", "b"]);
-    let tree2 = Tree::from_iter(["a", "c"]);
+    let tree1: Tree = ["a", "b"].into_iter().collect();
+    let tree2: Tree = ["a", "c"].into_iter().collect();
     assert_ne!(tree1.root(), tree2.root());
 }
 
 #[test]
 fn order_matters() {
-    let tree1 = Tree::from_iter(["a", "b"]);
-    let tree2 = Tree::from_iter(["b", "a"]);
+    let tree1: Tree = ["a", "b"].into_iter().collect();
+    let tree2: Tree = ["b", "a"].into_iter().collect();
     assert_ne!(tree1.root(), tree2.root());
 }
 

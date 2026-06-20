@@ -12,7 +12,7 @@ fn arb_leaves(min: usize, max: usize) -> impl Strategy<Value = Vec<Vec<u8>>> {
 fn arb_tree_and_index(min_leaves: usize, max_leaves: usize) -> impl Strategy<Value = (Tree, Index)> {
     arb_leaves(min_leaves, max_leaves).prop_flat_map(|leaves| {
         let len = leaves.len();
-        let tree = Tree::from_iter(leaves.iter());
+        let tree: Tree = leaves.iter().collect();
         (Just(tree), 0..len)
     })
 }
@@ -47,7 +47,7 @@ proptest! {
     ) {
         // Ensure all leaves are distinct so any index swap changes the content.
         prop_assume!(leaves.iter().collect::<std::collections::HashSet<_>>().len() == leaves.len());
-        let tree = Tree::from_iter(leaves.iter());
+        let tree: Tree = leaves.iter().collect();
         let n = tree.len();
         let a = index_a.index(n);
         let b = index_b.index(n);
@@ -99,8 +99,7 @@ proptest! {
         value in proptest::collection::vec(any::<u8>(), 0..64),
         count in 2usize..=64,
     ) {
-        let leaves: Vec<_> = std::iter::repeat_n(&value, count).collect();
-        let tree = Tree::from_iter(leaves);
+        let tree: Tree = std::iter::repeat_n(&value, count).collect();
         for i in 0..count {
             let proof = tree.prove(i).expect("prove should succeed");
             proof.preproof.verify().expect("proof should verify");
@@ -110,14 +109,14 @@ proptest! {
     #[test]
     fn proof_out_of_bounds(leaves in arb_leaves(1, 128)) {
         let len = leaves.len();
-        let tree = Tree::from_iter(leaves.iter());
+        let tree: Tree = leaves.iter().collect();
         prop_assert!(tree.prove(len).is_err());
         prop_assert!(tree.prove(len + 1).is_err());
     }
 
     #[test]
     fn single_leaf_root_is_leaf_hash(leaf in proptest::collection::vec(any::<u8>(), 0..64)) {
-        let tree = Tree::from_iter([&leaf]);
+        let tree: Tree = [&leaf].into_iter().collect();
         prop_assert_eq!(tree.root(), Some(&Tree::hash_leaf(&leaf)));
         prop_assert_eq!(tree.len(), 1);
         prop_assert!(!tree.is_empty());
@@ -128,7 +127,7 @@ proptest! {
         a in proptest::collection::vec(any::<u8>(), 0..64),
         b in proptest::collection::vec(any::<u8>(), 0..64),
     ) {
-        let tree = Tree::from_iter([&a, &b]);
+        let tree: Tree = [&a, &b].into_iter().collect();
         let expected = Tree::hash_branch(
             Tree::hash_leaf(&a),
             Tree::hash_leaf(&b),
@@ -139,8 +138,8 @@ proptest! {
 
     #[test]
     fn deterministic_construction(leaves in arb_leaves(1, 128)) {
-        let tree1 = Tree::from_iter(leaves.iter());
-        let tree2 = Tree::from_iter(leaves.iter());
+        let tree1: Tree = leaves.iter().collect();
+        let tree2: Tree = leaves.iter().collect();
         prop_assert_eq!(tree1.root(), tree2.root());
     }
 
@@ -150,15 +149,15 @@ proptest! {
         b in proptest::collection::vec(any::<u8>(), 1..64),
     ) {
         prop_assume!(a != b);
-        let tree1 = Tree::from_iter([&a, &b]);
-        let tree2 = Tree::from_iter([&b, &a]);
+        let tree1: Tree = [&a, &b].into_iter().collect();
+        let tree2: Tree = [&b, &a].into_iter().collect();
         prop_assert_ne!(tree1.root(), tree2.root());
     }
 
     #[test]
     fn len_matches_input_count(leaves in arb_leaves(1, 256)) {
         let n = leaves.len();
-        let tree = Tree::from_iter(leaves.iter());
+        let tree: Tree = leaves.iter().collect();
         prop_assert_eq!(tree.len(), n);
         prop_assert!(!tree.is_empty());
         prop_assert!(tree.root().is_some());

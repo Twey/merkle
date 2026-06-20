@@ -53,14 +53,17 @@ pub struct Proof<Digest, Hash = digest::Output<Digest>> {
 }
 
 impl<Digest, Hash> Tree<Digest, Hash> {
+    #[must_use] 
     pub fn root(&self) -> Option<&Hash> {
         self.tree.root()
     }
 
+    #[must_use] 
     pub fn is_empty(&self) -> bool {
         self.tree.is_empty()
     }
 
+    #[must_use] 
     pub fn len(&self) -> usize {
         self.tree.leaves().len()
     }
