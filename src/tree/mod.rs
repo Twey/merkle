@@ -27,7 +27,7 @@ impl<T: Default> FromIterator<T> for Tree<T> {
             (vec.len(), Either::Right(vec))
         };
 
-        let num_nodes = 2 * num_leaves - 1;
+        let num_nodes = (2 * num_leaves).saturating_sub(1);
         let num_branches = num_nodes - num_leaves;
 
         let mut nodes = Vec::with_capacity(num_nodes);

@@ -2,7 +2,7 @@ use super::super::*;
 
 #[test]
 fn empty_tree_has_no_root() {
-    let tree = Tree::<()>::default();
+    let tree = Tree::<()>::from_iter([]);
     assert_eq!(tree.root(), None);
     assert!(tree.is_empty());
     assert_eq!(tree.leaves().len(), 0);
