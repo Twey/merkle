@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 custom_debug_derive = "0.6.2"
+digest = "0.11.3"
 itertools = "0.15.0"
 proptest = "1.11.0"
 sha2 = "0.11.0"

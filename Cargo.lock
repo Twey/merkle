@@ -219,6 +219,7 @@ name = "merkle"
 version = "0.1.0"
 dependencies = [
  "custom_debug_derive",
+ "digest",
  "itertools",
  "proptest",
  "sha2",

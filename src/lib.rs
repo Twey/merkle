@@ -1,5 +1,5 @@
 use std::ops::RangeBounds;
-use sha2::{Sha256, Digest};
+
 
 mod tree;
 pub use tree::Node;
@@ -8,25 +8,9 @@ pub use tree::Node;
 pub type Index = usize;
 
 #[derive(Clone, Debug, Default)]
-pub struct Tree(tree::Tree<Hash>);
-
-#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Hash([u8; 32]);
-
-impl std::fmt::Debug for Hash {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        for byte in &self.0 {
-            write!(formatter, "{:02x}", byte)?;
-        }
-
-        Ok(())
-    }
-}
-
-impl AsRef<[u8]> for Hash {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
+pub struct Tree<D, Hash = digest::Output<D>> {
+    tree: tree::Tree<Hash>,
+    _digest: std::marker::PhantomData<D>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -41,18 +25,22 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 // A possibly-invalid Merkle proof.
 #[derive(Debug)]
-pub struct Preproof {
+pub struct Preproof<Digest, Hash = digest::Output<Digest>> {
     root: Hash,
     siblings: Vec<Hash>,
     node: Node,
     content: Hash,
     // If we didn't do domain separation we would want a height here.
+    _digest: std::marker::PhantomData<Digest>,
 }
 
-impl<T: AsRef<[u8]>> FromIterator<T> for Tree {
-    fn from_iter<It: IntoIterator<Item = T>>(items: It) -> Self {
-        let mut me = Self(items.into_iter().map(|item| Self::hash_leaf(item.as_ref())).collect());
-        let num_branches = me.0.branches().len();
+impl<Item: AsRef<[u8]>, Digest: digest::Digest> FromIterator<Item> for Tree<Digest> {
+    fn from_iter<It: IntoIterator<Item = Item>>(items: It) -> Self {
+        let mut me = Self {
+            tree: items.into_iter().map(|item| Self::hash_leaf(item.as_ref())).collect(),
+            _digest: std::marker::PhantomData,
+        };
+        let num_branches = me.tree.branches().len();
         me.recalculate(num_branches..);
         me
     }
@@ -60,92 +48,94 @@ impl<T: AsRef<[u8]>> FromIterator<T> for Tree {
 
 // A known-valid Merkle proof.
 #[non_exhaustive]
-pub struct Proof {
-    pub preproof: Preproof,
+pub struct Proof<Digest, Hash = digest::Output<Digest>> {
+    pub preproof: Preproof<Digest, Hash>,
 }
 
-// Public API
-impl Tree {
+impl<Digest, Hash> Tree<Digest, Hash> {
     pub fn root(&self) -> Option<&Hash> {
-        self.0.root()
+        self.tree.root()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.tree.is_empty()
     }
 
     pub fn len(&self) -> usize {
-        self.0.leaves().len()
+        self.tree.leaves().len()
     }
+}
 
-    pub fn prove(&self, index: Index) -> Result<Proof> {
-        let node = self.0.branches().len() + index;
-        if node >= self.0.nodes.len() {
+// Public API
+impl<Digest: digest::Digest> Tree<Digest> {
+    pub fn prove(&self, index: Index) -> Result<Proof<Digest>> {
+        let node = self.tree.branches().len() + index;
+        if node >= self.tree.nodes.len() {
             return Err(Error::IndexOutOfBounds)
         }
 
         Ok(Proof {
             preproof: Preproof {
-                root: *self.0.root().ok_or(Error::IndexOutOfBounds)?,
+                root: *self.tree.root().ok_or(Error::IndexOutOfBounds)?,
                 node,
                 content: *self.0.nodes.get(node).ok_or(Error::IndexOutOfBounds)?,
                 siblings: tree::path_to_root(node).map(|node| self.0.nodes[tree::sibling(node)]).collect(),
+                _digest: std::marker::PhantomData,
             },
         })
     }
 }
 
-impl Tree {
-    fn hash_leaf(value: &[u8]) -> Hash {
-        let mut hasher = Sha256::new();
+impl<Digest: digest::Digest> Tree<Digest> {
+    fn hash_leaf(value: &[u8]) -> digest::Output<Digest> {
+        let mut hasher = Digest::new();
         hasher.update([0x00]);
         hasher.update(value);
-        Hash(hasher.finalize().into())
+        hasher.finalize()
     }
 
-    fn hash_branch(left: Hash, right: Hash) -> Hash {
-        let mut hasher = Sha256::new();
+    fn hash_branch(left: digest::Output<Digest>, right: digest::Output<Digest>) -> digest::Output<Digest> {
+        let mut hasher = Digest::new();
         hasher.update([0x01]);
         hasher.update(left);
         hasher.update(right);
-        Hash(hasher.finalize().into())
+        hasher.finalize()
     }
 
     fn update(&mut self, node: Node) {
-        self.0.nodes[node] = Self::hash_branch(
-            self.0.nodes[tree::left_child(node)],
-            self.0.nodes[tree::right_child(node)],
+        self.tree.nodes[node] = Self::hash_branch(
+            self.tree.nodes[tree::left_child(node)].clone(),
+            self.tree.nodes[tree::right_child(node)].clone(),
         );
     }
 
     // Given a range of nodes that have been updated, update the branches above up to and including the root.
-    // TODO distinguish better between Index and Index
     fn recalculate(&mut self, nodes: impl RangeBounds<Node>) {
-        let mut parents = self.0.parents(&nodes);
+        let mut parents = self.tree.parents(&nodes);
 
         while !parents.is_empty() {
             for parent in parents.clone().rev() {
                 self.update(parent);
             }
 
-            parents = self.0.parents(&parents);
+            parents = self.tree.parents(&parents);
         }
     }
 }
 
-impl Preproof {
-    pub fn verify(self) -> Result<Proof> {
-        let mut hash = self.content;
+impl<Digest: digest::Digest> Preproof<Digest> {
+    pub fn verify(self) -> Result<Proof<Digest>> {
+        let mut hash = self.content.clone();
         let mut node = self.node;
 
-        for &sibling in &self.siblings {
+        for sibling in &self.siblings {
             let (left, right) = if node.is_multiple_of(2) {
-                (sibling, hash)
+                (sibling.clone(), hash)
             } else {
-                (hash, sibling)
+                (hash, sibling.clone())
             };
 
-            hash = Tree::hash_branch(left, right);
+            hash = Tree::<Digest>::hash_branch(left, right);
             node = tree::parent(node);
         }
 
