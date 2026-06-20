@@ -5,7 +5,7 @@ fn arb_leaves(min: usize, max: usize) -> impl Strategy<Value = Vec<Vec<u8>>> {
     prop::collection::vec(prop::collection::vec(any::<u8>(), 0..64), min..=max)
 }
 
-fn arb_tree_and_index(min_leaves: usize, max_leaves: usize) -> impl Strategy<Value = (Tree<Hash>, Index)> {
+fn arb_tree_and_index(min_leaves: usize, max_leaves: usize) -> impl Strategy<Value = (Tree, Index)> {
     arb_leaves(min_leaves, max_leaves).prop_flat_map(|leaves| {
         let len = leaves.len();
         let tree = Tree::from_iter(leaves.iter());

@@ -1,14 +1,14 @@
-use itertools::Either;
+use std::ops::RangeBounds;
 use sha2::{Sha256, Digest};
 
-use std::ops::Range;
-
 mod tree;
-pub use tree::Tree;
 pub use tree::Node;
 
 /// The index of an item in the list of leaves.
 pub type Index = usize;
+
+#[derive(Clone, Debug, Default)]
+pub struct Tree(tree::Tree<Hash>);
 
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Hash([u8; 32]);
@@ -43,36 +43,17 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 #[derive(Debug)]
 pub struct Preproof {
     root: Hash,
-    node: Node,
-    // If we didn't do domain separation we would want a height here.
-    content: Hash,
     siblings: Vec<Hash>,
+    node: Node,
+    content: Hash,
+    // If we didn't do domain separation we would want a height here.
 }
 
-impl<T: AsRef<[u8]>> FromIterator<T> for Tree<Hash> {
+impl<T: AsRef<[u8]>> FromIterator<T> for Tree {
     fn from_iter<It: IntoIterator<Item = T>>(items: It) -> Self {
-        let iter = items.into_iter();
-
-        let (num_leaves, items) = if let (lower, Some(upper)) = iter.size_hint() && lower == upper {
-            // If we know how many items there are, use the iterator directly
-            (lower, Either::Left(iter))
-        } else {
-            // Otherwise, collect them into a `Vec` so we can count them
-            let vec = Vec::from_iter(iter).into_iter();
-            (vec.len(), Either::Right(vec))
-        };
-
-        let num_nodes = 2 * num_leaves - 1;
-        let num_branches = num_nodes - num_leaves;
-
-        let mut nodes = Vec::with_capacity(num_nodes);
-        nodes.resize(num_branches, Hash::default());
-        nodes.extend(Iterator::map(items, |item| Self::hash_leaf(item.as_ref())));
-
-        let mut me = Self { nodes };
-
-        me.recalculate(&(num_branches..num_nodes));
-
+        let mut me = Self(items.into_iter().map(|item| Self::hash_leaf(item.as_ref())).collect());
+        let num_branches = me.0.branches().len();
+        me.recalculate(num_branches..);
         me
     }
 }
@@ -84,25 +65,37 @@ pub struct Proof {
 }
 
 // Public API
-impl Tree<Hash> {
+impl Tree {
+    pub fn root(&self) -> Option<&Hash> {
+        self.0.root()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.leaves().len()
+    }
+
     pub fn prove(&self, index: Index) -> Result<Proof> {
-        let node = self.branches().len() + index;
-        if node >= self.nodes.len() {
+        let node = self.0.branches().len() + index;
+        if node >= self.0.nodes.len() {
             return Err(Error::IndexOutOfBounds)
         }
 
         Ok(Proof {
             preproof: Preproof {
-                root: *self.root().ok_or(Error::IndexOutOfBounds)?,
+                root: *self.0.root().ok_or(Error::IndexOutOfBounds)?,
                 node,
-                content: *self.nodes.get(node).ok_or(Error::IndexOutOfBounds)?,
-                siblings: tree::path_to_root(node).map(|node| self.nodes[tree::sibling(node)]).collect(),
+                content: *self.0.nodes.get(node).ok_or(Error::IndexOutOfBounds)?,
+                siblings: tree::path_to_root(node).map(|node| self.0.nodes[tree::sibling(node)]).collect(),
             },
         })
     }
 }
 
-impl Tree<Hash> {
+impl Tree {
     fn hash_leaf(value: &[u8]) -> Hash {
         let mut hasher = Sha256::new();
         hasher.update([0x00]);
@@ -118,24 +111,24 @@ impl Tree<Hash> {
         Hash(hasher.finalize().into())
     }
 
-    fn update(&mut self, node: Index) {
-        self.nodes[node] = Self::hash_branch(
-            self.nodes[tree::left_child(node)],
-            self.nodes[tree::right_child(node)],
+    fn update(&mut self, node: Node) {
+        self.0.nodes[node] = Self::hash_branch(
+            self.0.nodes[tree::left_child(node)],
+            self.0.nodes[tree::right_child(node)],
         );
     }
 
     // Given a range of nodes that have been updated, update the branches above up to and including the root.
     // TODO distinguish better between Index and Index
-    fn recalculate(&mut self, nodes: &Range<Node>) {
-        let mut parents = tree::parents(nodes);
+    fn recalculate(&mut self, nodes: impl RangeBounds<Node>) {
+        let mut parents = self.0.parents(&nodes);
 
         while !parents.is_empty() {
             for parent in parents.clone().rev() {
                 self.update(parent);
             }
 
-            parents = tree::parents(&parents);
+            parents = self.0.parents(&parents);
         }
     }
 }
@@ -166,9 +159,5 @@ impl Preproof {
 
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod tree_tests;
-#[cfg(test)]
-mod tree_proptests;
 #[cfg(test)]
 mod proptests;
