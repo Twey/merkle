@@ -3,10 +3,14 @@ name = "merkle"
 version = "0.1.0"
 edition = "2024"
 
+[lints.clippy]
+pedantic = "warn"
+
 [dependencies]
-custom_debug_derive = "0.6.2"
 digest = "0.11.3"
 itertools = "0.15.0"
+thiserror = "2.0.18"
+
+[dev-dependencies]
 proptest = "1.11.0"
 sha2 = "0.11.0"
-thiserror = "2.0.18"
